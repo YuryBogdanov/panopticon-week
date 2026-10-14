@@ -125,7 +125,7 @@ class State {
     const out: DayInfo[] = days.map((date) => ({ date, meetings: [], deadlines: [], closed: 0 }));
     for (const h of this.all) {
       const e = at(h.event);
-      if (e >= 0) out[e].meetings.push({ title: h.title, ...(h.event?.time ? { time: h.event.time } : {}) });
+      if (e >= 0) out[e].meetings.push({ title: h.title.replace(/<\d{4}-[^>]*>/g, '').replace(/\s+/g, ' ').trim(), ...(h.event?.time ? { time: h.event.time } : {}) });
       const dl = at(h.deadline);
       if (dl >= 0 && h.keyword && !h.done) out[dl].deadlines.push(h.title);
       const c = at(h.closed);
