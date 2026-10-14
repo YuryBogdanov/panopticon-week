@@ -1,0 +1,165 @@
+{
+  "id": "week",
+  "name": "Неделя",
+  "version": "0.1.0",
+  "description": "План и итоги недели: 3–5 целей-ориентиров на неделю, сверка с ними каждый день, итоги в конце недели. Всё — в weeks.org, обычном Org-файле.",
+  "author": "Yury Bogdanov",
+  "api": "^1.7",
+  "main": "main.js",
+  "permissions": [
+    "index.read",
+    "files.edit"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "week.open",
+        "title": "Неделя: открыть",
+        "keys": [
+          "⌃⌘7"
+        ],
+        "synonyms": [
+          "неделя",
+          "цели недели",
+          "week"
+        ]
+      },
+      {
+        "id": "week.plan",
+        "title": "Неделя: спланировать",
+        "synonyms": [
+          "план недели",
+          "цели недели"
+        ]
+      }
+    ],
+    "views": [
+      {
+        "id": "week.view",
+        "title": "Неделя",
+        "icon": "M3 4.5h14v12H3zM3 8h14M7 2.5v3M13 2.5v3M6.5 11.5h2M11.5 11.5h2M6.5 14h2"
+      }
+    ],
+    "todayBlocks": [
+      {
+        "id": "week.goals",
+        "title": "Цели недели",
+        "hint": "Добавляет плагин «Неделя»",
+        "width": "full",
+        "after": "focus"
+      }
+    ],
+    "settings": [
+      {
+        "section": "Неделя",
+        "groups": [
+          {
+            "caption": "ФАЙЛ",
+            "fields": [
+              {
+                "key": "file",
+                "type": "text",
+                "label": "Файл недель",
+                "hint": "Относительно рабочей папки. Создаётся при первом плане",
+                "where": "folder",
+                "default": "weeks.org"
+              }
+            ]
+          },
+          {
+            "caption": "ПЛАН",
+            "fields": [
+              {
+                "key": "maxGoals",
+                "type": "choice",
+                "look": "segments",
+                "where": "folder",
+                "label": "Целей на неделю, не больше",
+                "default": 5,
+                "options": [
+                  {
+                    "value": 3,
+                    "label": "3"
+                  },
+                  {
+                    "value": 4,
+                    "label": "4"
+                  },
+                  {
+                    "value": 5,
+                    "label": "5"
+                  },
+                  {
+                    "value": 7,
+                    "label": "7"
+                  }
+                ]
+              }
+            ],
+            "help": "Неделя — с понедельника по воскресенье (ISO), как в календаре."
+          },
+          {
+            "caption": "ИТОГИ",
+            "fields": [
+              {
+                "key": "until",
+                "type": "choice",
+                "look": "menu",
+                "where": "folder",
+                "label": "Итоги можно подвести до",
+                "default": 3,
+                "options": [
+                  {
+                    "value": 1,
+                    "label": "понедельника"
+                  },
+                  {
+                    "value": 2,
+                    "label": "вторника"
+                  },
+                  {
+                    "value": 3,
+                    "label": "среды"
+                  },
+                  {
+                    "value": 4,
+                    "label": "четверга"
+                  }
+                ]
+              },
+              {
+                "key": "remind",
+                "type": "switch",
+                "where": "local",
+                "label": "Напоминать на «Сегодня»",
+                "default": true
+              },
+              {
+                "key": "q1",
+                "type": "text",
+                "where": "folder",
+                "label": "Первый вопрос",
+                "default": "Что получилось"
+              },
+              {
+                "key": "q2",
+                "type": "text",
+                "where": "folder",
+                "label": "Второй вопрос",
+                "default": "Что не получилось"
+              },
+              {
+                "key": "q3",
+                "type": "text",
+                "where": "folder",
+                "label": "Третий вопрос",
+                "default": "Что меняю на следующей неделе"
+              }
+            ],
+            "help": "Итоги можно подвести с пятницы 12:00 до конца выбранного дня следующей недели; потом неделя тихо помечается пропущенной."
+          }
+        ]
+      }
+    ]
+  }
+}
