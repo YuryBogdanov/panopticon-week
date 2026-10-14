@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HeadingInfo } from '@panopticon/api';
-import { addWeeks, canReview, headingTitle, isoWeek, keyOf, mondayOf, overdueReview, parseKey, phase, rangeShort, rangeTitle, readWeeks, stamp, stampDate } from '../src/weeks';
+import { addWeeks, canReview, cellOf, headingTitle, isoWeek, keyOf, mondayOf, overdueReview, parseKey, phase, rangeShort, rangeTitle, readWeeks, stamp, stampDate, type Week } from '../src/weeks';
 
 const d = (y: number, m: number, day: number, h = 0, min = 0) => new Date(y, m - 1, day, h, min);
 
@@ -75,5 +75,22 @@ describe('weeks.org', () => {
     expect(overdueReview(w41, d(2026, 10, 15, 0, 1), 3)).toBe(true);
     expect(overdueReview(w41, d(2026, 10, 14, 23), 3)).toBe(false);
     expect(overdueReview(ws.get('2026-W42'), d(2026, 12, 1), 3)).toBe(false);
+  });
+});
+
+describe('cellOf: the calendar button of a week', () => {
+  const fri = new Date(2026, 9, 16, 16, 30); // W42
+  const mon = new Date(2026, 9, 19, 9, 0); // W43
+  const ref = (line: number) => ({ path: 'weeks.org', line, title: '' });
+  const wk = (week: number, o: Partial<Week> = {}): Week => ({ id: { year: 2026, week }, ref: ref(week), goalsRef: null, goals: [], review: null, ...o });
+  const goal = { ref: ref(100), title: 'Цель', keyword: null, done: false, result: null, link: null };
+  it('past: reviewed, due in its time, else skipped; now; future: to plan or planned', () => {
+    expect(cellOf(wk(41, { review: { ref: ref(1), reviewed: '[2026-10-12]', skipped: null, answers: [] } }), { year: 2026, week: 41 }, fri, 3).kind).toBe('ok');
+    expect(cellOf(wk(42), { year: 2026, week: 42 }, mon, 3)).toEqual({ kind: 'due', tip: '42 неделя — без итогов · подвести сейчас' });
+    expect(cellOf(undefined, { year: 2026, week: 42 }, mon, 3).kind).toBe('skip'); // no plan: nothing to review
+    expect(cellOf(wk(41), { year: 2026, week: 41 }, mon, 3).kind).toBe('skip'); // its time gone
+    expect(cellOf(wk(42), { year: 2026, week: 42 }, fri, 3).kind).toBe('now');
+    expect(cellOf(undefined, { year: 2026, week: 44 }, fri, 3)).toEqual({ kind: 'plan', tip: '44 неделя — запланировать' });
+    expect(cellOf(wk(43, { goals: [goal] }), { year: 2026, week: 43 }, fri, 3).kind).toBe('planned');
   });
 });

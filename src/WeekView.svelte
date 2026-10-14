@@ -163,6 +163,7 @@
             <b>Неделя в цифрах</b>
             <div class="wk-nums">
               <div><b style:color="var(--done)">{stats.closed}</b><span>{plural(stats.closed, 'задача закрыта', 'задачи закрыты', 'задач закрыто').replace(/^\d+ /, '')}</span></div>
+              {#if stats.moved !== null}<div><b style:color="var(--wait)">{stats.moved}</b><span>перенесено</span></div>{/if}
               <div><b style:color="var(--todo)">{stats.overdue}</b><span>просрочено</span></div>
               <div><b>{stats.meetings}</b><span>{plural(stats.meetings, 'встреча', 'встречи', 'встреч').replace(/^\d+ /, '')}</span></div>
             </div>
@@ -255,7 +256,7 @@
   .wk-aq { font-size: 12px; font-weight: 600; color: var(--fg2); }
   .wk-at { margin-top: 2px; font-size: 12.5px; white-space: pre-wrap; }
   .wk-at.dim { color: var(--fg3); }
-  .wk-nums { display: flex; gap: 8px; margin: 6px 0 8px; }
+  .wk-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 8px; }
   .wk-nums > div { flex: 1; padding: 8px 10px; border-radius: 9px; background: var(--side); border: 1px solid var(--line); }
   .wk-nums b { display: block; font-size: 18px; }
   .wk-nums span { font-size: 11.5px; color: var(--fg2); white-space: nowrap; }

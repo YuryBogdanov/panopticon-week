@@ -114,6 +114,7 @@
         <div class="wk-cap2">НЕДЕЛЯ В ЦИФРАХ <span>— из файлов, само</span></div>
         <div class="wk-stats">
           <div><b style:color="var(--done)">{stats.closed}</b><span>{plural(stats.closed, 'задача закрыта', 'задачи закрыты', 'задач закрыто')}</span></div>
+          {#if stats.moved !== null}<div><b style:color="var(--wait)">{stats.moved}</b><span>перенесено</span></div>{/if}
           <div><b style:color="var(--todo)">{stats.overdue}</b><span>просрочено</span></div>
           <div><b>{stats.meetings}</b><span>{plural(stats.meetings, 'встреча', 'встречи', 'встреч')}</span></div>
         </div>

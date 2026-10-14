@@ -59,6 +59,9 @@
     }
   }
   const ahead = $derived(st.days(id));
+  // «ЦЕЛИ КВАРТАЛА — для ориентира»: my active goals, when «Цели квартала» is on and gives them (API 1.8)
+  let quarter = $state<{ title: string }[]>([]);
+  onMount(() => void st.ctx.plugins.call<{ title: string }[]>('quarter-goals', 'myActiveGoals').then((l) => (quarter = Array.isArray(l) ? l : [])));
   const load = (n: number) => `${Math.min(100, Math.round((n / 8) * 100))}%`;
   const carriedTitle = (g: Goal) => carry.some((c) => c.on && c.g.title === g.title);
 </script>
@@ -110,6 +113,14 @@
           </span>
         </div>
       {/each}
+      {#if quarter.length}
+        <div class="wk-quarter" aria-label="Цели квартала">
+          <div class="wk-cap2">ЦЕЛИ КВАРТАЛА <span>— для ориентира</span></div>
+          {#each quarter as q, i (i)}
+            <div class="wk-qg"><span class="wk-act">ACTIVE</span><span>{q.title}</span></div>
+          {/each}
+        </div>
+      {/if}
     </div>
   </div>
   <div class="wk-sf">
@@ -148,6 +159,10 @@
   .wk-bar span { display: block; height: 6px; background: var(--acc); }
   .wk-at { flex: 1; min-width: 0; color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .wk-at.red { color: var(--todo); }
+  .wk-quarter { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .wk-quarter .wk-cap2 { margin-bottom: 0; }
+  .wk-qg { display: flex; align-items: baseline; gap: 6px; }
+  .wk-act { padding: 1px 5px; border-radius: 4px; font-size: 10.5px; font-weight: 700; color: var(--next); background: color-mix(in srgb, var(--next) 16%, transparent); }
   .wk-sf { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); }
   .wk-path { margin-right: auto; font-size: 11.5px; color: var(--fg2); }
   .wk-path code { font: 11.5px var(--mono, ui-monospace, Menlo, monospace); }
