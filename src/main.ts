@@ -4,8 +4,9 @@ import { definePlugin } from '@panopticon/api';
 import { mount, unmount } from 'svelte';
 import { week } from './state.svelte';
 import { isoWeek, keyOf, parseKey } from './weeks';
-import WeekView from './WeekView.svelte';
+import Tab from './Tab.svelte';
 import TodayGoals from './TodayGoals.svelte';
+import TodayBanner from './TodayBanner.svelte';
 import { openPlan } from './plan';
 
 export default definePlugin({
@@ -14,17 +15,23 @@ export default definePlugin({
 
     // the tab «Неделя»: its state is the week's key
     ctx.ui.view<string>('week.view', {
-      title: () => 'Неделя',
-      crumbs: (k) => ['Неделя', `${(parseKey(k) ?? isoWeek(new Date())).week} неделя`],
+      title: (k) => (k.endsWith('/review') ? 'Итоги недели' : 'Неделя'),
+      crumbs: (k) => ['Неделя', `${k.endsWith('/review') ? 'Итоги ' : ''}${(parseKey(k) ?? isoWeek(new Date())).week} ${k.endsWith('/review') ? 'недели' : 'неделя'}`],
       restore: (raw) => (typeof raw === 'string' && parseKey(raw) ? raw : keyOf(isoWeek(new Date()))),
       render: (el, state, tab) => {
-        const app = mount(WeekView, { target: el, props: { initial: state, setState: (k: string) => tab.setState(k) } });
+        const app = mount(Tab, { target: el, props: { initial: state, setState: (k: string) => tab.setState(k) } });
         return () => void unmount(app);
       },
     });
     ctx.commands.on('week.open', () => void ctx.ui.open('week.view', keyOf(isoWeek(new Date()))));
     ctx.commands.on('week.plan', () => openPlan(isoWeek(new Date())));
+    // the review due now (the last week's, or this one's from Friday), else this week's
+    ctx.commands.on('week.review', () => void ctx.ui.open('week.view', keyOf(week.due() ?? isoWeek(new Date())) + '/review'));
 
+    ctx.ui.todayBlock('week.banner', (el, block) => {
+      const app = mount(TodayBanner, { target: el, props: { setHidden: (h: boolean) => block.setHidden(h) } });
+      return () => void unmount(app);
+    });
     ctx.ui.todayBlock('week.goals', (el) => {
       const app = mount(TodayGoals, { target: el });
       return () => void unmount(app);

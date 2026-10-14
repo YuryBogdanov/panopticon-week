@@ -1,19 +1,19 @@
 <script lang="ts">
   import { week as st } from './state.svelte';
-  import { addWeeks, cmpWeek, isoWeek, keyOf, parseKey, phase, rangeTitle, WEEKDAYS, WEEKDAYS_FULL, type Goal, type WeekId } from './weeks';
+  import { addWeeks, canReview, cmpWeek, isoWeek, keyOf, parseKey, phase, rangeTitle, stampDate, WEEKDAYS, WEEKDAYS_FULL, type Goal, type WeekId } from './weeks';
   import { openPlan } from './plan';
   import { makeTaskMenu } from './task';
 
   // The tab «Неделя» (ТЗ 36 §3): the week's goals on the left, its days and the weeks' reviews on the right. One tab,
   // moved from week to week (its state: the week's key).
-  let { initial, setState }: { initial: string; setState: (key: string) => void } = $props();
-  // svelte-ignore state_referenced_locally
-  let key = $state(initial);
+  let { key, go: goKey }: { key: string; go: (key: string) => void } = $props();
   const id = $derived(parseKey(key) ?? st.current);
-  const go = (w: WeekId) => {
-    key = keyOf(w);
-    setState(key);
-  };
+  const go = (w: WeekId) => goKey(keyOf(w));
+  const review = (w: WeekId) => goKey(keyOf(w) + '/review');
+  // its review: open while it can be made; a past week's, once made, to correct
+  const rv = $derived(w?.review ?? null);
+  const reviewable = $derived(canReview(id, st.now, st.settings.until) || !!rv?.reviewed);
+  const stats = $derived(st.stats(id));
   const ph = $derived(phase(id, st.now));
   const w = $derived(st.week(id));
   const goals = $derived(w?.goals ?? []);
@@ -73,6 +73,16 @@
       return { id: x, state: now ? 'now' : r?.reviewed ? 'ok' : 'skip', tip: now ? 'Текущая' : r?.reviewed ? 'Подведены' : 'Пропущены' };
     }),
   );
+  /** Under the strip: the last week's review — when it was made, or that it can be made now. */
+  const last = $derived.by(() => {
+    const p = addWeeks(st.current, -1);
+    const r = st.week(p)?.review;
+    const at = stampDate(r?.reviewed);
+    if (at) return { id: p, text: `${p.week} неделя — подведены ${WEEKDAYS_IN[at.getDay()]}, ${at.getHours()}:${String(at.getMinutes()).padStart(2, '0')}`, review: false };
+    if (st.week(p) && !r?.skipped && canReview(p, st.now, st.settings.until)) return { id: p, text: `${p.week} неделя без итогов — подвести сейчас`, review: true };
+    return null;
+  });
+  const WEEKDAYS_IN = ['в воскресенье', 'в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу'];
 </script>
 
 <div class="wk-view">
@@ -87,6 +97,9 @@
         {#if ph !== 'current'}<button class="wk-now" onclick={() => go(isoWeek(new Date()))}>Сейчас</button>{:else}<span>·</span>{/if}
         <button aria-label="Следующая неделя" onclick={() => go(addWeeks(id, 1))}>{addWeeks(id, 1).week} ›</button>
       </nav>
+      {#if reviewable && ph !== 'future'}
+        <button class="wk-btn" class:pri={!rv?.reviewed} onclick={() => review(id)}>{rv?.reviewed ? 'Итоги…' : 'Подвести итоги…'}</button>
+      {/if}
       {#if ph === 'current'}
         <button class="wk-btn" onclick={() => openPlan(id)}>Изменить план</button>
       {:else if ph === 'future'}
@@ -131,6 +144,30 @@
       </section>
 
       <aside class="wk-side">
+        {#if ph === 'past'}
+          <section class="wk-card" aria-label="Итоги недели">
+            <b>Итоги недели</b>
+            {#if rv?.reviewed}
+              {#each st.settings.questions as q (q)}
+                {@const a = st.answer(id, q)}
+                <div class="wk-ans">
+                  <div class="wk-aq">{q}</div>
+                  {#if a}<div class="wk-at">{a}</div>{:else}<div class="wk-at dim">—</div>{/if}
+                </div>
+              {/each}
+            {:else}
+              <div class="wk-ans dim">{rv?.skipped ? 'Итоги не подводились' : 'Итоги не подведены'}</div>
+            {/if}
+          </section>
+          <section class="wk-card" aria-label="Неделя в цифрах">
+            <b>Неделя в цифрах</b>
+            <div class="wk-nums">
+              <div><b style:color="var(--done)">{stats.closed}</b><span>{plural(stats.closed, 'задача закрыта', 'задачи закрыты', 'задач закрыто').replace(/^\d+ /, '')}</span></div>
+              <div><b style:color="var(--todo)">{stats.overdue}</b><span>просрочено</span></div>
+              <div><b>{stats.meetings}</b><span>{plural(stats.meetings, 'встреча', 'встречи', 'встреч').replace(/^\d+ /, '')}</span></div>
+            </div>
+          </section>
+        {:else}
         <section class="wk-card" aria-label="Неделя по дням">
           <b>Неделя по дням</b>
           {#each days as d (+d.date)}
@@ -141,6 +178,7 @@
             </div>
           {/each}
         </section>
+        {/if}
         <section class="wk-card" aria-label="Итоги недель">
           <b>Итоги недель</b>
           <div class="wk-strip">
@@ -149,6 +187,9 @@
             {/each}
           </div>
           <div class="wk-legend"><span><i class="ok"></i> подведены</span><span><i></i> пропущены</span></div>
+          {#if last}
+            <button class="wk-last" class:go={last.review} onclick={() => (last.review ? review(last.id) : go(last.id))}>{last.text} ›</button>
+          {/if}
         </section>
       </aside>
     </div>
@@ -206,4 +247,17 @@
   .wk-legend { display: flex; gap: 12px; margin: 8px 0 4px; font-size: 11.5px; color: var(--fg2); }
   .wk-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--field); }
   .wk-legend i.ok { background: var(--done); }
+  .wk-last { display: block; width: 100%; text-align: left; margin: 2px 0 4px; padding: 6px 0 0; border: 0; border-top: 1px solid var(--line); background: none; font: inherit; font-size: 12.5px; color: var(--fg2); }
+  .wk-last.go { color: var(--acc); }
+  .wk-last:hover { text-decoration: underline; }
+  .wk-ans { padding: 7px 0; border-top: 1px solid var(--line); }
+  .wk-ans.dim { color: var(--fg3); }
+  .wk-aq { font-size: 12px; font-weight: 600; color: var(--fg2); }
+  .wk-at { margin-top: 2px; font-size: 12.5px; white-space: pre-wrap; }
+  .wk-at.dim { color: var(--fg3); }
+  .wk-nums { display: flex; gap: 8px; margin: 6px 0 8px; }
+  .wk-nums > div { flex: 1; padding: 8px 10px; border-radius: 9px; background: var(--side); border: 1px solid var(--line); }
+  .wk-nums b { display: block; font-size: 18px; }
+  .wk-nums span { font-size: 11.5px; color: var(--fg2); white-space: nowrap; }
+  .wk-nums > div { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 </style>
