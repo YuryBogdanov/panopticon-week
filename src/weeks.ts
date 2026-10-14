@@ -157,3 +157,15 @@ export function overdueReview(week: Week | undefined, now: Date, until: number):
   if (!week || week.review?.reviewed || week.review?.skipped) return false;
   return now >= reviewWindow(week.id, until).to;
 }
+
+/** The button of a week in the calendar (ТЗ 36 §6): how it looks and what its tooltip says. */
+export type CellKind = 'ok' | 'due' | 'skip' | 'now' | 'plan' | 'planned';
+export function cellOf(week: Week | undefined, id: WeekId, now: Date, until: number): { kind: CellKind; tip: string } {
+  const n = `${id.week} неделя`;
+  const p = phase(id, now);
+  if (p === 'current') return { kind: 'now', tip: `${n} — текущая` };
+  if (p === 'future') return week?.goals.length ? { kind: 'planned', tip: `${n} — план составлен · цели` } : { kind: 'plan', tip: `${n} — запланировать` };
+  if (week?.review?.reviewed) return { kind: 'ok', tip: `${n} — итоги подведены · открыть` };
+  if (week && !week.review?.skipped && canReview(id, now, until)) return { kind: 'due', tip: `${n} — без итогов · подвести сейчас` };
+  return { kind: 'skip', tip: `${n} — итоги не подводились · открыть` };
+}

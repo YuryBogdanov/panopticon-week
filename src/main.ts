@@ -7,6 +7,7 @@ import { isoWeek, keyOf, parseKey } from './weeks';
 import Tab from './Tab.svelte';
 import TodayGoals from './TodayGoals.svelte';
 import TodayBanner from './TodayBanner.svelte';
+import WeekButton from './WeekButton.svelte';
 import { openPlan } from './plan';
 
 export default definePlugin({
@@ -28,6 +29,11 @@ export default definePlugin({
     // the review due now (the last week's, or this one's from Friday), else this week's
     ctx.commands.on('week.review', () => void ctx.ui.open('week.view', keyOf(week.due() ?? isoWeek(new Date())) + '/review'));
 
+    // the buttons of the weeks in the calendar (its place `calendar.weekCell`, API 1.8)
+    ctx.ui.slot<{ year: number; week: number }>('calendar.weekCell', (el, d) => {
+      const app = mount(WeekButton, { target: el, props: { id: { year: d.year, week: d.week } } });
+      return () => void unmount(app);
+    });
     ctx.ui.todayBlock('week.banner', (el, block) => {
       const app = mount(TodayBanner, { target: el, props: { setHidden: (h: boolean) => block.setHidden(h) } });
       return () => void unmount(app);

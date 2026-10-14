@@ -28,6 +28,8 @@ export interface DayInfo {
 /** «Неделя в цифрах»: from the files, never written. */
 export interface Stats {
   closed: number;
+  /** Tasks whose SCHEDULED was moved in the week (by :LOGBOOK:); null — the journal is off, nothing noted. */
+  moved: number | null;
   overdue: number;
   meetings: number;
 }
@@ -57,6 +59,8 @@ class State {
   /** The statuses of the default set (the first one of the file's sets). */
   statuses = $state.raw<{ open: string[]; done: string[] }>({ open: ['TODO', 'NEXT', 'WAIT'], done: ['DONE', 'CANCELLED'] });
   now = $state(new Date());
+  /** The workflow keeps a journal: moves of dates are noted (the tile «перенесено»). */
+  logbook = $state(false);
   loaded = $state(false);
   private n = 0;
 
@@ -108,6 +112,7 @@ class State {
     try {
       const wf = await idx.workflow(files[0]?.path ?? this.settings.file);
       const set = wf.sets[0];
+      this.logbook = !!wf.logbook;
       if (set) this.statuses = { open: set.states.filter((s) => !s.done).map((s) => s.name), done: set.states.filter((s) => s.done).map((s) => s.name) };
     } catch {
       /* no file yet: the default statuses */
@@ -165,14 +170,15 @@ class State {
     const [from, to] = [+days[0], +days[6] + 86400000];
     const now = new Date(this.now.getFullYear(), this.now.getMonth(), this.now.getDate());
     const inWeek = (d?: { y: number; m: number; d: number }) => !!d && +dateOf(d) >= from && +dateOf(d) < to;
-    let closed = 0, overdue = 0, meetings = 0;
+    let closed = 0, overdue = 0, meetings = 0, moved = 0;
     for (const h of this.all) {
+      if (h.reschedules?.some((r) => inWeek(r.at))) moved++;
       if (inWeek(h.closed)) closed++;
       if (inWeek(h.event)) meetings++;
       const due = [h.scheduled, h.deadline].filter((d) => inWeek(d) && dateOf(d!) < now);
       if (h.keyword && !h.done && due.length) overdue++;
     }
-    return { closed, overdue, meetings };
+    return { closed, moved: this.logbook ? moved : null, overdue, meetings };
   }
   /** The answer to a question of a week's review (its heading's text), or ''. */
   answer(id: WeekId, question: string): string {
