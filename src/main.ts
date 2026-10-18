@@ -10,6 +10,8 @@ import TodayBanner from './TodayBanner.svelte';
 import WeekButton from './WeekButton.svelte';
 import { openPlan } from './plan';
 
+type Summary = { text: string; tone?: 'alert' | 'wait' } | null;
+
 export default definePlugin({
   activate(ctx) {
     week.init(ctx);
@@ -35,11 +37,12 @@ export default definePlugin({
       return () => void unmount(app);
     });
     ctx.ui.todayBlock('week.banner', (el, block) => {
-      const app = mount(TodayBanner, { target: el, props: { setHidden: (h: boolean) => block.setHidden(h) } });
+      // the summary for the app's panel «Сегодня» (API 1.15; none in an older app)
+      const app = mount(TodayBanner, { target: el, props: { setHidden: (h: boolean) => block.setHidden(h), setSummary: (s: Summary) => block.setSummary?.(s) } });
       return () => void unmount(app);
     });
-    ctx.ui.todayBlock('week.goals', (el) => {
-      const app = mount(TodayGoals, { target: el });
+    ctx.ui.todayBlock('week.goals', (el, block) => {
+      const app = mount(TodayGoals, { target: el, props: { setSummary: (s: Summary) => block.setSummary?.(s) } });
       return () => void unmount(app);
     });
   },
