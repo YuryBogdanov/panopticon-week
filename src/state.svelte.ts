@@ -48,6 +48,10 @@ const str = (v: unknown, d: string) => (typeof v === 'string' && v.trim() ? v.tr
 
 class State {
   ctx!: Ctx;
+  /** The app's new interface (API 1.14 `ui.look`, ТЗ 51): the plugin draws its new look there; an older app — the old. */
+  get next() {
+    return this.ctx?.ui.look === 'next';
+  }
   settings = $state<Settings>({ file: 'weeks.org', maxGoals: 5, until: 3, remind: true, questions: ['Что получилось', 'Что не получилось', 'Что меняю на следующей неделе'] });
   /** The weeks of the file by key; the goals' notes (first lines of their text). */
   weeks = $state.raw<Map<string, Week>>(new Map());
