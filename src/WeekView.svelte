@@ -40,13 +40,16 @@
   }
   const RESULT: Record<string, [string, string]> = { done: ['Да', 'var(--done)'], partial: ['Частично', 'var(--wait)'], missed: ['Нет', 'var(--todo)'] };
   const tone = (kw: string | null, done: boolean) => (done ? 'var(--done)' : kw === 'WAIT' ? 'var(--wait)' : kw === 'NEXT' ? 'var(--next)' : 'var(--todo)');
+  const nx = $derived(st.next);
+  /** A file's name as the new interface shows it: without «.org» (ТЗ 44 §11). */
+  const shown = (f: string) => (nx ? f.replace(/\.org$/i, '') : f);
   /** «Задача в midterm.org · запланирована на чт», «… · выполнена во вт». */
   function where(g: Goal): string {
     const t = st.taskOf(g);
     if (!t) return '';
     const day = (d: Date) => WEEKDAYS[d.getDay()].toLowerCase();
     const how = t.done ? (t.closed ? `выполнена в${t.closed.getDay() === 2 ? 'о' : ''} ${day(t.closed)}` : 'выполнена') : t.scheduled ? `запланирована на ${day(t.scheduled)}` : 'без даты';
-    return `Задача в ${t.file} · ${how}`;
+    return `Задача в ${shown(t.file)} · ${how}`;
   }
   const open = (g: Goal) => void st.ctx.commands.run('file.open', { path: g.ref.path, line: g.ref.line });
   const openTask = (g: Goal) => {
@@ -60,8 +63,8 @@
     const parts: string[] = [];
     if (d.meetings.length === 1) parts.push(d.meetings[0].title);
     else if (d.meetings.length) parts.push(plural(d.meetings.length, 'встреча', 'встречи', 'встреч'));
-    for (const t of d.deadlines.slice(0, 2)) parts.push(`дедлайн: ${t}`);
-    if (+d.date === today) parts.unshift('сегодня');
+    for (const t of d.deadlines.slice(0, 2)) parts.push(nx ? `⚑ ${t}` : `дедлайн: ${t}`);
+    if (+d.date === today && !nx) parts.unshift('сегодня');
     return parts.join(' · ') || '—';
   }
 
@@ -94,11 +97,11 @@
       </div>
       <nav class="wk-nav" aria-label="Соседние недели">
         <button aria-label="Предыдущая неделя" onclick={() => go(addWeeks(id, -1))}>‹ {addWeeks(id, -1).week}</button>
-        {#if ph !== 'current'}<button class="wk-now" onclick={() => go(isoWeek(new Date()))}>Сейчас</button>{:else}<span>·</span>{/if}
+        {#if ph !== 'current'}<button class="wk-now" onclick={() => go(isoWeek(new Date()))}>Сейчас</button>{:else if !nx}<span>·</span>{/if}
         <button aria-label="Следующая неделя" onclick={() => go(addWeeks(id, 1))}>{addWeeks(id, 1).week} ›</button>
       </nav>
       {#if reviewable && ph !== 'future'}
-        <button class="wk-btn" class:pri={!rv?.reviewed} onclick={() => review(id)}>{rv?.reviewed ? 'Итоги…' : 'Подвести итоги…'}</button>
+        <button class="wk-btn wk-rvb" class:pri={!rv?.reviewed} onclick={() => review(id)}>{rv?.reviewed ? 'Итоги…' : 'Подвести итоги…'}</button>
       {/if}
       {#if ph === 'current'}
         <button class="wk-btn" onclick={() => openPlan(id)}>Изменить план</button>
@@ -113,7 +116,7 @@
         {#each goals as g, i (g.ref.line + ':' + g.title)}
           {@const t = st.taskOf(g)}
           <div class="wk-goal">
-            <span class="wk-n">{i + 1}</span>
+            <span class="wk-n" class:done={t?.done || g.done}>{i + 1}</span>
             <div class="wk-gm">
               <div class="wk-gt">
                 {#if t?.keyword}<span class="wk-cap" style:--c={tone(t.keyword, t.done)}>{t.keyword}</span>{/if}
@@ -128,7 +131,7 @@
                 {:else}
                   <button class="wk-link" onclick={(e) => makeTaskMenu(g, id, e.currentTarget as HTMLElement)}>Сделать задачей…</button>
                 {/if}
-                <button class="wk-link faint" onclick={() => open(g)}>Открыть в {st.settings.file}</button>
+                <button class="wk-link faint" onclick={() => open(g)}>Открыть в {shown(st.settings.file)}{nx ? ' ›' : ''}</button>
               </div>
             </div>
           </div>
@@ -146,7 +149,7 @@
       <aside class="wk-side">
         {#if ph === 'past'}
           <section class="wk-card" aria-label="Итоги недели">
-            <b>Итоги недели</b>
+            <b>{nx ? 'Итоги' : 'Итоги недели'}</b>
             {#if rv?.reviewed}
               {#each st.settings.questions as q (q)}
                 {@const a = st.answer(id, q)}
@@ -170,7 +173,7 @@
           </section>
         {:else}
         <section class="wk-card" aria-label="Неделя по дням">
-          <b>Неделя по дням</b>
+          <b>Неделя по дням{#if nx}<span class="wk-hs">закрыто задач — справа</span>{/if}</b>
           {#each days as d (+d.date)}
             <div class="wk-day" class:today={+d.date === today} class:future={+d.date > today}>
               <span class="wk-dn">{WEEKDAYS[d.date.getDay()]} {d.date.getDate()}</span>
@@ -181,13 +184,13 @@
         </section>
         {/if}
         <section class="wk-card" aria-label="Итоги недель">
-          <b>Итоги недель</b>
+          <b>Итоги недель{#if nx}<span class="wk-hs">8 последних</span>{/if}</b>
           <div class="wk-strip">
             {#each strip as s (keyOf(s.id))}
               <button class="wk-sq {s.state}" title="{s.id.week} неделя — {s.tip.toLowerCase()}" onclick={() => go(s.id)}>{s.id.week}</button>
             {/each}
           </div>
-          <div class="wk-legend"><span><i class="ok"></i> подведены</span><span><i></i> пропущены</span></div>
+          {#if !nx}<div class="wk-legend"><span><i class="ok"></i> подведены</span><span><i></i> пропущены</span></div>{/if}
           {#if last}
             <button class="wk-last" class:go={last.review} onclick={() => (last.review ? review(last.id) : go(last.id))}>{last.text} ›</button>
           {/if}
@@ -201,6 +204,64 @@
   .wk-view { height: 100%; overflow: auto; background: var(--stage, var(--side)); color: var(--fg); font: 13px var(--ui, -apple-system, system-ui, sans-serif); }
   /* the new interface (ТЗ 51): on the tab's grid, the tokens and fonts of the app */
   .wk-view.nx { background: transparent; color: var(--ink); }
+  /* ---- the new interface (ТЗ 51 §1): the header as the app's screens, the goals in the file's text's font ---- */
+  .nx .wk-wrap { max-width: 1440px; padding: 26px 36px 32px; gap: 20px; }
+  .nx header { gap: 8px; }
+  .nx .wk-kick { margin-bottom: 8px; font: 500 11px var(--font-mono, ui-monospace, monospace); letter-spacing: 0.06em; color: var(--ink3); }
+  .nx h1 { margin: 0; font: 400 38px/1.05 var(--font-display, Georgia, serif); color: var(--ink); }
+  .nx .wk-nav { gap: 8px; margin-right: 8px; }
+  .nx .wk-nav button, .nx .wk-btn { height: 30px; padding: 0 14px; border: 0; border-radius: 7px; background: var(--chip2); color: var(--ink); font: 12.5px var(--ui, -apple-system, system-ui, sans-serif); white-space: nowrap; }
+  .nx .wk-nav button:hover, .nx .wk-btn:hover { filter: brightness(0.97); }
+  .nx .wk-btn.pri { background: var(--lamp); color: var(--onlamp); font-weight: 600; }
+  .nx .wk-rvb { order: 1; } /* the review last, by the plan (the mockup) */
+  .nx .wk-btn:focus-visible, .nx .wk-nav button:focus-visible { outline: 2px solid var(--lampline); outline-offset: 2px; }
+  .nx .wk-cols { gap: 20px; flex-wrap: nowrap; }
+  .nx .wk-goals { flex: 1 1 auto; gap: 10px; }
+  .nx .wk-h { margin-bottom: 0; }
+  .nx .wk-h b { font-size: 13.5px; font-weight: 700; }
+  .nx .wk-h span { color: var(--ink3); }
+  .nx .wk-goal { padding: 14px 16px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--card); }
+  .nx .wk-n { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 12px; background: var(--chip2); color: var(--ink2); font-size: 12px; }
+  .nx .wk-n.done { background: color-mix(in srgb, var(--done) 18%, transparent); color: var(--done); }
+  .nx .wk-cap { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; font-size: 10.5px; }
+  .nx .wk-gtitle { font: 600 21px/1.2 var(--font-text, Georgia, serif); color: var(--ink); }
+  .nx .wk-gtitle.done { color: var(--ink3); }
+  .nx .wk-note { margin-top: 3px; font: 500 16.5px/1.35 var(--font-text, Georgia, serif); color: var(--ink2); }
+  .nx .wk-gl { gap: 14px; margin-top: 9px; }
+  .nx .wk-link { color: var(--lampink); }
+  .nx .wk-link.dim, .nx .wk-link.faint, .nx .wk-dim { color: var(--ink3); }
+  .nx .wk-link.faint { margin-left: auto; }
+  .nx .wk-empty { border: 1px solid var(--rule); background: var(--card); color: var(--ink2); }
+  .nx .wk-add { height: 44px; border: 1.5px dashed var(--rule); color: var(--ink3); font-size: 13px; }
+  .nx .wk-add:focus-within { border: 1.5px solid var(--lampline); }
+  .nx .wk-add input { font: 600 19px var(--font-text, Georgia, serif); color: var(--ink); }
+  .nx .wk-add input::placeholder { font: 13px var(--ui, -apple-system, system-ui, sans-serif); color: var(--ink3); }
+  .nx .wk-side { flex: 0 0 380px; gap: 16px; }
+  .nx .wk-card { padding: 14px 16px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--card); }
+  .nx .wk-card > b { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 13.5px; font-weight: 700; }
+  .wk-hs { font-size: 12px; font-weight: 400; color: var(--ink3); }
+  .nx .wk-day { gap: 10px; height: 32px; min-height: 0; border-top: 1px solid var(--rule); }
+  .nx .wk-day.future { opacity: 0.55; }
+  .nx .wk-dn { flex: 0 0 44px; font: 11.5px var(--font-mono, ui-monospace, monospace); color: var(--ink3); }
+  .nx .wk-day.today .wk-dn { color: var(--lampink); font-weight: 600; }
+  .nx .wk-dw { font-size: 13px; color: var(--ink); }
+  .nx .wk-day.today .wk-dw { font-weight: 600; }
+  .nx .wk-dc { font-weight: 600; }
+  .nx .wk-strip { gap: 6px; margin: 4px 0 10px; }
+  .nx .wk-sq { flex: 0 0 32px; width: 32px; height: 32px; box-sizing: border-box; border-radius: 7px; border: 0; background: var(--chip); color: var(--ink3); font: 700 12px var(--ui, -apple-system, system-ui, sans-serif); }
+  .nx .wk-sq.ok { background: color-mix(in srgb, var(--done) 16%, transparent); color: var(--done); }
+  .nx .wk-sq.now { background: transparent; border: 1.5px solid var(--lamp); color: var(--lampink); }
+  .nx .wk-last { margin: 0; padding: 0; border: 0; font-size: 12.5px; color: var(--lampink); }
+  .nx .wk-last.go { color: var(--lampink); }
+  .nx .wk-ans { padding: 8px 0; border-top: 1px solid var(--rule); }
+  .nx .wk-ans.dim { color: var(--ink3); }
+  .nx .wk-aq { font-size: 12.5px; font-weight: 600; color: var(--ink2); }
+  .nx .wk-at { margin-top: 3px; font: 500 16px/1.4 var(--font-text, Georgia, serif); color: var(--ink); }
+  .nx .wk-at.dim { color: var(--ink3); }
+  .nx .wk-nums { gap: 10px; margin: 2px 0 4px; }
+  .nx .wk-nums > div { padding: 12px 14px; border: 0; border-radius: 10px; background: var(--chip); }
+  .nx .wk-nums b { font: 400 30px/1.1 var(--font-display, Georgia, serif); }
+  .nx .wk-nums span { font-size: 12px; color: var(--ink2); }
   .wk-wrap { max-width: 1340px; margin: 0 auto; padding: 22px 32px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
   header { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
   .wk-ttl { flex: 1; min-width: 0; }
