@@ -13,7 +13,8 @@ export function openCard(id: WeekId, at: HTMLElement) {
   const host = document.createElement('div');
   host.className = 'wk-pop';
   host.style.cssText = `position:fixed;z-index:60;left:${Math.round(r.right + 8)}px;top:${Math.round(r.top - 4)}px`;
-  document.body.append(host);
+  // in the new interface inside its layer (`data-ui="next"`): the card gets its tokens (ТЗ 51 §5)
+  (at.closest('[data-ui="next"]') ?? document.body).append(host);
   const app = mount(WeekCard, { target: host, props: { id, close: () => closeCard() } });
   // kept on the screen: moved up (and left) when it would leave it
   const b = host.getBoundingClientRect();
