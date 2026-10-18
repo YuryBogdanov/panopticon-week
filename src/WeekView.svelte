@@ -85,7 +85,7 @@
   const WEEKDAYS_IN = ['в воскресенье', 'в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу'];
 </script>
 
-<div class="wk-view">
+<div class="wk-view" class:nx={st.next}>
   <div class="wk-wrap">
     <header>
       <div class="wk-ttl">
@@ -199,6 +199,8 @@
 
 <style>
   .wk-view { height: 100%; overflow: auto; background: var(--stage, var(--side)); color: var(--fg); font: 13px var(--ui, -apple-system, system-ui, sans-serif); }
+  /* the new interface (ТЗ 51): on the tab's grid, the tokens and fonts of the app */
+  .wk-view.nx { background: transparent; color: var(--ink); }
   .wk-wrap { max-width: 1340px; margin: 0 auto; padding: 22px 32px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
   header { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
   .wk-ttl { flex: 1; min-width: 0; }

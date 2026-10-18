@@ -87,7 +87,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="wk-rv" bind:this={root} onkeydown={keys} role="region" aria-label="Итоги {id.week} недели">
+<div class="wk-rv" class:nx={st.next} bind:this={root} onkeydown={keys} role="region" aria-label="Итоги {id.week} недели">
   <div class="wk-rc">
     <div class="wk-rh">
       <div class="wk-rt"><b>Итоги {id.week} недели</b><span>{rangeTitle(id)}</span><i>шаг 1 из 2 · дальше план</i></div>
@@ -139,6 +139,7 @@
 
 <style>
   .wk-rv { height: 100%; overflow: auto; box-sizing: border-box; padding: 22px 24px; display: flex; justify-content: center; align-items: flex-start; background: var(--stage, var(--side)); color: var(--fg); font: 13px var(--ui, -apple-system, system-ui, sans-serif); }
+  .wk-rv.nx { background: transparent; color: var(--ink); }
   .wk-rc { width: 860px; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08); overflow: hidden; }
   .wk-rh { padding: 16px 22px 12px; border-bottom: 1px solid var(--line); }
   .wk-rt { display: flex; align-items: baseline; gap: 10px; }
