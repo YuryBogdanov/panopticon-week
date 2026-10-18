@@ -64,10 +64,14 @@
   onMount(() => void st.ctx.plugins.call<{ title: string }[]>('quarter-goals', 'myActiveGoals').then((l) => (quarter = Array.isArray(l) ? l : [])));
   const load = (n: number) => `${Math.min(100, Math.round((n / 8) * 100))}%`;
   const carriedTitle = (g: Goal) => carry.some((c) => c.on && c.g.title === g.title);
+  // the new interface (ТЗ 51 §3): the sheet of ТЗ 44, 860 pt; the goals in the file's text's font
+  const nx = $derived(st.next);
+  const shownFile = $derived(nx ? st.settings.file.replace(/\.org$/i, '') : st.settings.file);
+  const dayOf = (d: Date) => (nx ? `${WEEKDAYS[d.getDay()]} ${d.getDate()}` : WEEKDAYS[d.getDay()]);
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="wk-sheet" role="dialog" aria-label="План на {id.week} неделю" tabindex="-1" onkeydown={keys}>
+<div class="wk-sheet" class:nx role="dialog" aria-label="План на {id.week} неделю" tabindex="-1" onkeydown={keys}>
   <div class="wk-sh">
     <b>План на {id.week} неделю</b>
     <span>{rangeTitle(id)}{step ? ' · шаг 2 из 2' : ''}</span>
@@ -81,7 +85,7 @@
             <label class="wk-crow">
               <input type="checkbox" bind:checked={c.on} />
               <span class="wk-ct">{c.g.title}</span>
-              {#if c.g.result && RESULT[c.g.result]}<span class="wk-cr" style:color={RESULT[c.g.result][1]}>{RESULT[c.g.result][0]}</span>{/if}
+              {#if c.g.result && RESULT[c.g.result]}<span class="wk-cr" style:color={RESULT[c.g.result][1]} style:--c={RESULT[c.g.result][1]}>{nx ? RESULT[c.g.result][0].toUpperCase() : RESULT[c.g.result][0]}</span>{/if}
             </label>
           {/each}
         </div>
@@ -89,12 +93,12 @@
       <div>
         <div class="wk-cap2">ЦЕЛИ НЕДЕЛИ <span>— 3–{st.settings.maxGoals} ориентиров</span></div>
         {#each carry.filter((c) => c.on) as c, i (c.g.ref.line)}
-          <div class="wk-field carried"><span class="wk-fn">{i + 1}</span><span class="wk-ft">{c.g.title}</span><span class="wk-from">с {prevId.week} недели</span></div>
+          <div class="wk-field carried">{#if !nx}<span class="wk-fn">{i + 1}</span>{/if}<span class="wk-ft">{c.g.title}</span><span class="wk-from">с {prevId.week} недели</span></div>
         {/each}
         {#each fields.slice(0, Math.max(have.length, room)) as f, i (i)}
           <div class="wk-field">
-            <span class="wk-fn">{carry.filter((c) => c.on).length + i + 1}</span>
-            <input bind:this={inputs[i]} bind:value={f.title} onkeydown={(e) => key(e, i)} placeholder={i === 0 ? 'Главная цель недели' : 'Ещё цель… (Tab — следующая)'} aria-label="Цель {i + 1}" spellcheck="false" />
+            {#if !nx}<span class="wk-fn">{carry.filter((c) => c.on).length + i + 1}</span>{/if}
+            <input bind:this={inputs[i]} bind:value={f.title} onkeydown={(e) => key(e, i)} placeholder={i === 0 ? 'Главная цель недели' : nx ? 'Ещё цель — Tab' : 'Ещё цель… (Tab — следующая)'} aria-label="Цель {i + 1}" spellcheck="false" />
             {#if f.title.trim() && !f.wasTask && !carriedTitle({ title: f.title } as Goal)}
               <label class="wk-task"><input type="checkbox" bind:checked={f.task} /> задачей</label>
             {/if}
@@ -106,10 +110,10 @@
       <div class="wk-cap2">УЖЕ НА НЕДЕЛЕ</div>
       {#each ahead as d (+d.date)}
         <div class="wk-arow">
-          <span class="wk-ad">{WEEKDAYS[d.date.getDay()]}</span>
+          <span class="wk-ad">{dayOf(d.date)}</span>
           <span class="wk-bar"><span style:width={load(d.meetings.length)}></span></span>
           <span class="wk-at" class:red={d.deadlines.length > 0}>
-            {[d.meetings.length ? `${d.meetings.length} ${d.meetings.length === 1 ? 'встреча' : d.meetings.length < 5 ? 'встречи' : 'встреч'}` : '', ...d.deadlines.slice(0, 1).map((t) => `дедлайн: ${t}`)].filter(Boolean).join(', ') || '—'}
+            {[d.meetings.length ? `${d.meetings.length} ${d.meetings.length === 1 ? 'встреча' : d.meetings.length < 5 ? 'встречи' : 'встреч'}` : '', ...d.deadlines.slice(0, 1).map((t) => (nx ? `⚑ ${t}` : `дедлайн: ${t}`))].filter(Boolean).join(nx ? ' · ' : ', ') || '—'}
           </span>
         </div>
       {/each}
@@ -124,7 +128,7 @@
     </div>
   </div>
   <div class="wk-sf">
-    <span class="wk-path">Запишется в <code>{st.settings.file} › {keyOf(id)} › Цели</code></span>
+    <span class="wk-path">Запишется в <code>{shownFile} › {keyOf(id)} › Цели</code></span>
     {#if back}<button class="wk-btn" onclick={back}>Назад к итогам</button>{:else}<button class="wk-btn" onclick={close}>Отмена</button>{/if}
     <button class="wk-btn pri" bind:this={saveBtn} disabled={busy} onclick={() => void save()}>Сохранить план ⌘↩</button>
   </div>
@@ -168,4 +172,43 @@
   .wk-path code { font: 11.5px var(--mono, ui-monospace, Menlo, monospace); }
   .wk-btn { height: 28px; padding: 0 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--fg); font: inherit; }
   .wk-btn.pri { border: 0; padding: 0 14px; background: var(--acc); color: var(--onacc); font-weight: 600; }
+
+  /* ---- the new interface (ТЗ 51 §3): the sheet of ТЗ 44 from under the toolbar, 860 pt ---- */
+  .wk-sheet.nx { position: fixed; left: 50%; top: 52px; transform: translateX(-50%); width: 860px; max-width: calc(100vw - 32px); max-height: calc(100vh - 80px); overflow: auto; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 14px 14px; background: var(--card); color: var(--ink); box-shadow: var(--popshadow); }
+  .nx .wk-sh { height: auto; padding: 22px 24px 14px; background: none; border: 0; }
+  .nx .wk-sh b { font: 400 26px/1.05 var(--font-display, Georgia, serif); }
+  .nx .wk-sh span { margin-top: 5px; font-size: 12.5px; color: var(--ink3); }
+  .nx .wk-sb { gap: 20px; padding: 0 24px; }
+  .nx .wk-left { padding: 0; border: 0; gap: 18px; }
+  .nx .wk-right { flex: 0 0 300px; box-sizing: border-box; align-self: flex-start; padding: 14px 16px; border-radius: 10px; background: var(--side); }
+  .nx .wk-cap2 { margin-bottom: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink3); }
+  .nx .wk-cap2 span { font-weight: 400; color: var(--ink3); }
+  .nx .wk-crow { gap: 10px; min-height: 36px; border-top: 1px solid var(--rule); }
+  .nx .wk-crow input { width: 15px; height: 15px; accent-color: var(--lamp); }
+  .nx .wk-ct { font: 600 18px/1.25 var(--font-text, Georgia, serif); color: var(--ink); }
+  .nx .wk-cr { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; background: color-mix(in srgb, var(--c) 16%, transparent); }
+  .nx .wk-field { height: 40px; gap: 10px; margin-bottom: 6px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--field); box-shadow: inset 0 0 0 1px var(--rule); }
+  .nx .wk-field:focus-within { border: 0; padding: 0 10px; box-shadow: inset 0 0 0 1.5px var(--lampline); }
+  .nx .wk-field.carried { background: var(--field); }
+  .nx .wk-field input:not([type]), .nx .wk-ft { font: 600 18px var(--font-text, Georgia, serif); color: var(--ink); }
+  .nx .wk-field input:not([type])::placeholder { font-weight: 400; color: var(--ink3); }
+  .nx .wk-from { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; background: var(--chip); color: var(--ink2); font-size: 11px; white-space: nowrap; }
+  .nx .wk-task { font-size: 11.5px; color: var(--ink3); }
+  .nx .wk-task input { accent-color: var(--lamp); }
+  .nx .wk-arow { gap: 8px; min-height: 28px; font-size: 12px; }
+  .nx .wk-ad { flex: 0 0 40px; font: 11px var(--font-mono, ui-monospace, monospace); color: var(--ink3); }
+  .nx .wk-bar { height: 5px; border-radius: 3px; background: var(--track); }
+  .nx .wk-bar span { height: 5px; background: var(--lamp); }
+  .nx .wk-at { color: var(--ink); }
+  .nx .wk-at.red { color: var(--todo); }
+  .nx .wk-quarter { gap: 0; margin-top: 16px; }
+  .nx .wk-quarter .wk-cap2 { margin-bottom: 6px; }
+  .nx .wk-qg { align-items: center; gap: 8px; min-height: 28px; }
+  .nx .wk-act { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; font-size: 10.5px; }
+  .nx .wk-sf { gap: 8px; padding: 18px 24px 20px; border: 0; }
+  .nx .wk-path { font-size: 11px; color: var(--ink3); }
+  .nx .wk-path code { font: 11px var(--font-mono, ui-monospace, monospace); }
+  .nx .wk-btn { height: 30px; padding: 0 14px; border: 0; border-radius: 7px; background: var(--chip2); color: var(--ink); font-size: 13px; }
+  .nx .wk-btn.pri { background: var(--lamp); color: var(--onlamp); font-weight: 600; }
+  .nx .wk-btn:focus-visible { outline: 2px solid var(--lampline); outline-offset: 2px; }
 </style>
