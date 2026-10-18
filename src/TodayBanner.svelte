@@ -13,7 +13,9 @@
   const nx = $derived(st.next);
   const review = () => id && void st.ctx.ui.open('week.view', keyOf(id) + '/review');
   async function skip() {
-    if (id && (await st.skip(id))) st.ctx.ui.notify(`Итоги ${id.week} недели пропущены`, [{ label: 'Отменить', run: () => void st.ctx.edit!.undo() }]);
+    // the week kept: once skipped the banner has none (`id` is null after the write)
+    const w = id;
+    if (w && (await st.skip(w))) st.ctx.ui.notify(`Итоги ${w.week} недели пропущены`, [{ label: 'Отменить', run: () => void st.ctx.edit!.undo() }]);
   }
 </script>
 
