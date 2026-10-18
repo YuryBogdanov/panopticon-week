@@ -82,6 +82,8 @@
   });
   const plural = (n: number, one: string, few: string, many: string) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many);
 
+  const nx = $derived(st.next);
+  const shownFile = $derived(nx ? st.settings.file.replace(/\.org$/i, '') : st.settings.file);
   let root: HTMLDivElement | undefined = $state();
   onMount(() => root?.querySelector<HTMLTextAreaElement>('textarea')?.focus({ preventScroll: true }));
 </script>
@@ -90,15 +92,23 @@
 <div class="wk-rv" class:nx={st.next} bind:this={root} onkeydown={keys} role="region" aria-label="Итоги {id.week} недели">
   <div class="wk-rc">
     <div class="wk-rh">
-      <div class="wk-rt"><b>Итоги {id.week} недели</b><span>{rangeTitle(id)}</span><i>шаг 1 из 2 · дальше план</i></div>
+      {#if nx}
+        <div class="wk-rt">
+          <div class="wk-rk"><div class="wk-kick">Итоги · {rangeTitle(id).replace(' – ', '–')}</div><h1>Итоги {id.week} недели</h1></div>
+          <i>шаг 1 из 2 · дальше план</i>
+        </div>
+      {:else}
+        <div class="wk-rt"><b>Итоги {id.week} недели</b><span>{rangeTitle(id)}</span><i>шаг 1 из 2 · дальше план</i></div>
+      {/if}
       <div class="wk-when">{when}</div>
     </div>
     <div class="wk-rb">
       <div>
         <div class="wk-cap2">ЦЕЛИ НЕДЕЛИ</div>
-        {#each goals as g (refKey(g.ref))}
+        {#each goals as g, gi (refKey(g.ref))}
           {@const m = markOf(g)}
           <div class="wk-rg">
+            {#if nx}<span class="wk-n" class:done={m === 'done'}>{gi + 1}</span>{/if}
             <span class="wk-rgt">{g.title}</span>
             <div class="wk-seg" role="radiogroup" aria-label="Оценка: {g.title}">
               {#each SEG as [r, label, c] (r)}
@@ -130,7 +140,7 @@
     </div>
     <div class="wk-rf">
       <button class="wk-skip" onclick={() => void skip()}>Пропустить эту неделю</button>
-      <span class="wk-path">{st.settings.file} › {keyOf(id)} › Итоги</span>
+      <span class="wk-path">{shownFile} › {keyOf(id)} › Итоги</span>
       <button class="wk-btn" disabled={busy} onclick={() => void done(false)}>Только итоги</button>
       <button class="wk-btn pri" disabled={busy} onclick={() => void done(true)}>Дальше — план на {next.week} неделю ⌘↩</button>
     </div>
@@ -139,7 +149,46 @@
 
 <style>
   .wk-rv { height: 100%; overflow: auto; box-sizing: border-box; padding: 22px 24px; display: flex; justify-content: center; align-items: flex-start; background: var(--stage, var(--side)); color: var(--fg); font: 13px var(--ui, -apple-system, system-ui, sans-serif); }
-  .wk-rv.nx { background: transparent; color: var(--ink); }
+  .wk-rv.nx { background: transparent; color: var(--ink); padding: 26px 24px 32px; }
+  /* ---- the new interface (ТЗ 51 §2): the card of 880 pt, the goals and the answers in the file's text's font ---- */
+  .nx .wk-rc { width: 880px; border: 1px solid var(--rule); border-radius: 14px; background: var(--card); box-shadow: none; overflow: visible; }
+  .nx .wk-rh { padding: 24px 28px 0; border: 0; }
+  .nx .wk-rt { align-items: flex-end; gap: 12px; }
+  .nx .wk-rk { flex: 1; min-width: 0; }
+  .nx .wk-kick { margin-bottom: 8px; font: 500 11px var(--font-mono, ui-monospace, monospace); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); }
+  .nx h1 { margin: 0; font: 400 32px/1.05 var(--font-display, Georgia, serif); color: var(--ink); }
+  .nx .wk-rt i { font: 11px var(--font-mono, ui-monospace, monospace); color: var(--ink3); white-space: nowrap; }
+  .nx .wk-when { margin-top: 8px; font-size: 13px; color: var(--ink2); }
+  .nx .wk-rb { padding: 20px 28px; gap: 22px; }
+  .nx .wk-cap2 { margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink3); }
+  .nx .wk-cap2 span { font-weight: 400; color: var(--ink3); }
+  .nx .wk-rg { gap: 12px; min-height: 42px; border-top: 1px solid var(--rule); }
+  .nx .wk-rg.dim { color: var(--ink3); }
+  .nx .wk-n { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--chip2); color: var(--ink2); font-size: 12px; font-weight: 700; }
+  .nx .wk-n.done { background: color-mix(in srgb, var(--done) 18%, transparent); color: var(--done); }
+  .nx .wk-rgt { font: 600 19px/1.25 var(--font-text, Georgia, serif); color: var(--ink); }
+  .nx .wk-seg { padding: 2px; gap: 2px; border-radius: 8px; background: var(--chip); }
+  .nx .wk-seg button { height: 26px; padding: 0 12px; border-radius: 6px; color: var(--ink2); font-size: 12.5px; }
+  .nx .wk-seg button.on { background: var(--segon); color: var(--c); font-weight: 700; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+  .nx .wk-seg button:focus-visible { outline: 2px solid var(--lampline); outline-offset: 1px; }
+  .nx .wk-stats { gap: 10px; }
+  .nx .wk-stats > div { padding: 12px 14px; border: 0; border-radius: 10px; background: var(--chip); }
+  .nx .wk-stats b { font: 400 30px/1.1 var(--font-display, Georgia, serif); }
+  .nx .wk-stats b:not([style]) { color: var(--ink); }
+  .nx .wk-stats span { font-size: 12px; color: var(--ink2); }
+  .nx .wk-qs { gap: 12px; flex-wrap: nowrap; }
+  .nx .wk-q { gap: 6px; }
+  .nx .wk-q span { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .nx .wk-q textarea { min-height: 96px; height: 120px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 9px; background: var(--field); color: var(--ink); font: 500 17px/1.4 var(--font-text, Georgia, serif); }
+  .nx .wk-q textarea:focus { border: 1.5px solid var(--lampline); padding: 9.5px 11.5px; }
+  .nx .wk-q textarea::placeholder { font: 500 17px/1.4 var(--font-text, Georgia, serif); color: var(--ink3); }
+  .nx .wk-rf { gap: 8px; padding: 16px 28px 22px; border: 0; background: none; }
+  .nx .wk-skip { font-size: 12.5px; color: var(--ink3); }
+  .nx .wk-skip:hover { color: var(--ink); }
+  .nx .wk-path { font: 11px var(--font-mono, ui-monospace, monospace); color: var(--ink3); margin-right: 4px; }
+  .nx .wk-btn { height: 30px; padding: 0 14px; border: 0; border-radius: 7px; background: var(--chip2); color: var(--ink); font-size: 13px; }
+  .nx .wk-btn.pri { background: var(--lamp); color: var(--onlamp); font-weight: 600; }
+  .nx .wk-btn:focus-visible { outline: 2px solid var(--lampline); outline-offset: 2px; }
   .wk-rc { width: 860px; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08); overflow: hidden; }
   .wk-rh { padding: 16px 22px 12px; border-bottom: 1px solid var(--line); }
   .wk-rt { display: flex; align-items: baseline; gap: 10px; }
