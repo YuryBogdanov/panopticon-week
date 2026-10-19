@@ -69,7 +69,7 @@
   </div>
   {/if}
   {#if goals.length && nx}
-    <div class="wk-tiles">
+    <div class="wk-tiles" style:--n={goals.length > 4 ? 2 : Math.max(1, goals.length)}>
       {#each goals as g, i (refKey(g.ref))}
         {@const t = st.taskOf(g)}
         <button class="wk-tile" class:sel={chosen === refKey(g.ref)} class:task={!!t} class:done={isDone(g)} onclick={() => pick(g)} ondblclick={() => (t ? void st.ctx.commands.run('file.open', { path: t.ref.path, line: t.ref.line }) : openWeek())} oncontextmenu={(e) => menu(e, g)}>
@@ -82,7 +82,7 @@
       {/each}
     </div>
   {:else if goals.length}
-    <div class="wk-tiles">
+    <div class="wk-tiles" style:--n={goals.length > 4 ? 2 : Math.max(1, goals.length)}>
       {#each goals as g, i (refKey(g.ref))}
         {@const t = st.taskOf(g)}
         <button class="wk-tile" class:sel={chosen === refKey(g.ref)} class:task={!!t} onclick={() => pick(g)} ondblclick={() => (t ? void st.ctx.commands.run('file.open', { path: t.ref.path, line: t.ref.line }) : openWeek())} oncontextmenu={(e) => menu(e, g)}>
@@ -98,19 +98,23 @@
 </div>
 
 <style>
-  .wk-today { outline: none; }
+  /* fix #294: the tiles' row by the block's own width */
+  .wk-today { outline: none; container-type: inline-size; }
   .wk-th { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .wk-sub { font-size: 12px; color: var(--fg2); }
   .wk-plug { padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; color: var(--purple); background: color-mix(in srgb, var(--purple) 14%, transparent); }
   .wk-more { margin-left: auto; border: 0; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--acc); }
   .wk-more.inline { margin: 0; font-size: inherit; }
   .wk-more:hover { text-decoration: underline; }
-  .wk-tiles { display: flex; gap: 10px; flex-wrap: wrap; padding-bottom: 4px; }
-  .wk-tile { flex: 1 1 240px; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--side); color: var(--fg); font: inherit; text-align: left; }
+  /* fix #294: the goals in a row of equal tiles, the titles up to 3 lines; more than 4 goals, or a block under 720 pt —
+     two a row */
+  .wk-tiles { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 10px; padding-bottom: 4px; }
+  @container (max-width: 720px) { .wk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .wk-tile { min-width: 0; display: flex; align-items: flex-start; gap: 8px; min-height: 34px; padding: 8px 10px; border: 0; border-radius: 8px; background: var(--side); color: var(--fg); font: inherit; text-align: left; }
   .wk-tile.sel { background: var(--sel); box-shadow: inset 0 0 0 1.5px var(--acc); }
   .wk-tn { font-weight: 700; color: var(--fg3); }
   .wk-cap { padding: 1px 5px; border-radius: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
-  .wk-tt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk-tt { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
   .wk-tt.done { text-decoration: line-through; color: var(--fg3); }
   .wk-none { color: var(--fg2); padding: 6px 0 8px; }
   /* ---- the new interface (ТЗ 51 §4): the core's card; its head with the plugin's mark; the goals in a row ---- */
@@ -118,8 +122,8 @@
   .nx .wk-th b { font-size: 13.5px; font-weight: 700; color: var(--ink); }
   .nx .wk-sub { color: var(--ink3); }
   .nx .wk-more { font-size: 12px; color: var(--lampink); white-space: nowrap; }
-  .nx .wk-tiles { flex-wrap: nowrap; gap: 16px; padding-bottom: 2px; }
-  .nx .wk-tile { flex: 1 1 0; align-items: flex-start; gap: 9px; min-height: 0; padding: 10px 0 2px; border-top: 1px solid var(--rule); border-radius: 0; background: none; color: var(--ink); }
+  .nx .wk-tiles { gap: 16px; padding-bottom: 2px; }
+  .nx .wk-tile { align-items: flex-start; gap: 9px; min-height: 0; padding: 10px 0 2px; border-top: 1px solid var(--rule); border-radius: 0; background: none; color: var(--ink); }
   .nx .wk-tile.done { opacity: 0.55; }
   .nx .wk-tile.sel { background: var(--lampsoft); box-shadow: none; border-radius: 6px; }
   .nx .wk-tile:focus-visible { outline: 2px solid var(--lampline); outline-offset: 2px; }
