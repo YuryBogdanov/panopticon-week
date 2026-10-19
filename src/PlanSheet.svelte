@@ -174,7 +174,8 @@
   .wk-btn.pri { border: 0; padding: 0 14px; background: var(--acc); color: var(--onacc); font-weight: 600; }
 
   /* ---- the new interface (ТЗ 51 §3): the sheet of ТЗ 44 from under the toolbar, 860 pt ---- */
-  .wk-sheet.nx { position: fixed; left: 50%; top: 52px; transform: translateX(-50%); width: 860px; max-width: calc(100vw - 32px); max-height: calc(100vh - 80px); overflow: auto; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 14px 14px; background: var(--card); color: var(--ink); box-shadow: var(--popshadow); }
+  /* fix #292: centred in the core's layer over the window (`bare`), not by the viewport's 50 % and a transform */
+  .wk-sheet.nx { position: absolute; left: 0; right: 0; margin: 0 auto; top: 52px; width: 860px; max-width: calc(100vw - 32px); max-height: calc(100vh - 80px); overflow: auto; border: 1px solid var(--rule); border-top: 0; border-radius: 0 0 14px 14px; background: var(--card); color: var(--ink); box-shadow: var(--popshadow); }
   .nx .wk-sh { height: auto; padding: 22px 24px 14px; background: none; border: 0; }
   .nx .wk-sh b { font: 400 26px/1.05 var(--font-display, Georgia, serif); }
   .nx .wk-sh span { margin-top: 5px; font-size: 12.5px; color: var(--ink3); }
